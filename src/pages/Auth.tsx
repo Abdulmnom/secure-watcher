@@ -273,7 +273,7 @@ const Auth = () => {
 
           <Button
             type="submit"
-            variant="glow"
+            variant="success"
             size="lg"
             className="w-full"
             disabled={isLoading || !isFormValid()}
