@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 import { LoginAttemptsTable } from "@/components/LoginAttemptsTable";
 import { AlertBanner } from "@/components/AlertBanner";
 import { StatsCard } from "@/components/StatsCard";
@@ -11,7 +12,8 @@ import {
   Activity, 
   CheckCircle, 
   XCircle, 
-  AlertTriangle 
+  AlertTriangle,
+  LogOut 
 } from "lucide-react";
 
 interface Stats {
@@ -22,6 +24,7 @@ interface Stats {
 }
 
 const AdminDashboard = () => {
+  const { user, signOut } = useAuth();
   const [suspiciousCount, setSuspiciousCount] = useState(0);
   const [suspiciousIPs, setSuspiciousIPs] = useState<string[]>([]);
   const [stats, setStats] = useState<Stats>({ total: 0, success: 0, failed: 0, suspicious: 0 });
@@ -99,9 +102,21 @@ const AdminDashboard = () => {
             </div>
           </div>
 
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-success/10 border border-success/20">
-            <Activity className="w-4 h-4 text-success animate-pulse" />
-            <span className="text-xs font-medium text-success">LIVE</span>
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-success/10 border border-success/20">
+              <Activity className="w-4 h-4 text-success animate-pulse" />
+              <span className="text-xs font-medium text-success">LIVE</span>
+            </div>
+            
+            {user && (
+              <div className="flex items-center gap-3">
+                <span className="text-sm text-muted-foreground">{user.email}</span>
+                <Button variant="outline" size="sm" onClick={signOut}>
+                  <LogOut className="w-4 h-4" />
+                  Sign Out
+                </Button>
+              </div>
+            )}
           </div>
         </header>
 

@@ -1,16 +1,23 @@
-import { useState } from "react";
 import { Link } from "react-router-dom";
-import { LoginSimulator } from "@/components/LoginSimulator";
+import { AuthNav } from "@/components/AuthNav";
+import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
-import { Shield, LayoutDashboard, Terminal, Activity } from "lucide-react";
+import { Shield, Terminal, Activity, Lock, Eye, AlertTriangle } from "lucide-react";
 
 const Index = () => {
+  const { user, isAdmin } = useAuth();
+
   return (
     <div className="min-h-screen relative">
       {/* Scanlines overlay */}
       <div className="fixed inset-0 pointer-events-none scanlines opacity-30" />
       
       <div className="container max-w-4xl py-12 relative z-10">
+        {/* Navigation */}
+        <nav className="flex justify-end mb-8 animate-fade-in">
+          <AuthNav />
+        </nav>
+
         {/* Header */}
         <header className="text-center mb-12 animate-fade-in">
           <div className="inline-flex items-center justify-center p-4 rounded-2xl bg-primary/10 glow-primary mb-6">
@@ -20,25 +27,52 @@ const Index = () => {
             Security Monitoring System
           </h1>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-            A simple intrusion detection system for learning purposes. 
-            Simulate login attempts and detect suspicious activity.
+            A realistic intrusion detection system for learning purposes. 
+            Real authentication with automatic suspicious activity detection.
           </p>
         </header>
 
-        {/* Navigation */}
-        <nav className="flex justify-center gap-4 mb-12 animate-fade-in" style={{ animationDelay: '100ms' }}>
-          <Button variant="glow" size="lg" asChild>
-            <Link to="/admin">
-              <LayoutDashboard className="w-5 h-5" />
-              Admin Dashboard
-            </Link>
-          </Button>
-        </nav>
-
         {/* Main Content */}
         <div className="grid gap-8 animate-fade-in" style={{ animationDelay: '200ms' }}>
-          {/* Login Simulator */}
-          <LoginSimulator />
+          {/* User Status */}
+          {user ? (
+            <div className="border-gradient p-8 rounded-xl text-center">
+              <div className="inline-flex items-center justify-center p-3 rounded-lg bg-success/10 mb-4">
+                <Lock className="w-8 h-8 text-success" />
+              </div>
+              <h2 className="text-xl font-semibold text-foreground mb-2">
+                You're Logged In
+              </h2>
+              <p className="text-muted-foreground mb-6">
+                Welcome back! Your login was recorded in our security monitoring system.
+              </p>
+              {isAdmin && (
+                <Button variant="glow" size="lg" asChild>
+                  <Link to="/admin">
+                    <Eye className="w-5 h-5" />
+                    View Admin Dashboard
+                  </Link>
+                </Button>
+              )}
+            </div>
+          ) : (
+            <div className="border-gradient p-8 rounded-xl text-center">
+              <div className="inline-flex items-center justify-center p-3 rounded-lg bg-warning/10 mb-4">
+                <AlertTriangle className="w-8 h-8 text-warning" />
+              </div>
+              <h2 className="text-xl font-semibold text-foreground mb-2">
+                Authentication Required
+              </h2>
+              <p className="text-muted-foreground mb-6">
+                Sign in or create an account to test the security monitoring system.
+              </p>
+              <Button variant="glow" size="lg" asChild>
+                <Link to="/auth">
+                  Sign In / Sign Up
+                </Link>
+              </Button>
+            </div>
+          )}
 
           {/* How it works */}
           <div className="border-gradient p-8 rounded-xl">
@@ -53,10 +87,10 @@ const Index = () => {
               <div className="p-4 rounded-lg bg-secondary/30">
                 <div className="flex items-center gap-2 mb-3">
                   <span className="w-6 h-6 rounded-full bg-primary text-primary-foreground text-sm font-bold flex items-center justify-center">1</span>
-                  <h3 className="font-medium text-foreground">Simulate Login</h3>
+                  <h3 className="font-medium text-foreground">Real Login</h3>
                 </div>
                 <p className="text-sm text-muted-foreground">
-                  Click "Login Success" or "Login Failed" to simulate login attempts from random IP addresses.
+                  Enter your email and password. The system validates credentials and logs every attempt.
                 </p>
               </div>
 
@@ -66,17 +100,17 @@ const Index = () => {
                   <h3 className="font-medium text-foreground">Detection Logic</h3>
                 </div>
                 <p className="text-sm text-muted-foreground">
-                  The system tracks failed attempts. 3+ failures from the same IP in 5 minutes triggers an alert.
+                  3+ failed attempts from the same IP in 5 minutes triggers a suspicious activity alert.
                 </p>
               </div>
 
               <div className="p-4 rounded-lg bg-secondary/30">
                 <div className="flex items-center gap-2 mb-3">
                   <span className="w-6 h-6 rounded-full bg-primary text-primary-foreground text-sm font-bold flex items-center justify-center">3</span>
-                  <h3 className="font-medium text-foreground">View Dashboard</h3>
+                  <h3 className="font-medium text-foreground">Admin Dashboard</h3>
                 </div>
                 <p className="text-sm text-muted-foreground">
-                  Check the Admin Dashboard to see all attempts, suspicious IPs, and real-time alerts.
+                  Admins can view all login attempts, suspicious IPs, and real-time security alerts.
                 </p>
               </div>
             </div>

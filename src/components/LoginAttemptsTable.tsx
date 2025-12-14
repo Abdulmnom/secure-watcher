@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
-import { RefreshCw, Clock, Globe, CheckCircle, XCircle, AlertTriangle } from "lucide-react";
+import { RefreshCw, Clock, Globe, CheckCircle, XCircle, AlertTriangle, Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Table,
@@ -15,6 +15,7 @@ import {
 
 interface LoginAttempt {
   id: string;
+  email: string | null;
   ip_address: string;
   status: 'success' | 'failed';
   is_suspicious: boolean;
@@ -107,6 +108,12 @@ export function LoginAttemptsTable({ onSuspiciousChange }: LoginAttemptsTablePro
             <TableRow className="border-border hover:bg-transparent">
               <TableHead className="text-muted-foreground font-medium">
                 <div className="flex items-center gap-2">
+                  <Mail className="w-4 h-4" />
+                  Email
+                </div>
+              </TableHead>
+              <TableHead className="text-muted-foreground font-medium">
+                <div className="flex items-center gap-2">
                   <Globe className="w-4 h-4" />
                   IP Address
                 </div>
@@ -124,14 +131,14 @@ export function LoginAttemptsTable({ onSuspiciousChange }: LoginAttemptsTablePro
           <TableBody>
             {attempts.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={4} className="text-center py-12 text-muted-foreground">
+                <TableCell colSpan={5} className="text-center py-12 text-muted-foreground">
                   {isLoading ? (
                     <div className="flex items-center justify-center gap-2">
                       <RefreshCw className="w-4 h-4 animate-spin" />
                       Loading attempts...
                     </div>
                   ) : (
-                    "No login attempts recorded yet. Use the simulator to create some!"
+                    "No login attempts recorded yet. Try signing in!"
                   )}
                 </TableCell>
               </TableRow>
@@ -146,6 +153,9 @@ export function LoginAttemptsTable({ onSuspiciousChange }: LoginAttemptsTablePro
                   )}
                   style={{ animationDelay: `${index * 30}ms` }}
                 >
+                  <TableCell className="text-sm text-foreground">
+                    {attempt.email || <span className="text-muted-foreground">—</span>}
+                  </TableCell>
                   <TableCell className="font-mono text-sm text-foreground">
                     {attempt.ip_address}
                   </TableCell>
