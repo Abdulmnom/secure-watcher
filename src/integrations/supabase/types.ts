@@ -14,6 +14,39 @@ export type Database = {
   }
   public: {
     Tables: {
+      alerts: {
+        Row: {
+          alert_type: string
+          created_at: string
+          id: string
+          message: string
+          related_ip: string | null
+          related_user_id: string | null
+          resolved: boolean
+          severity: Database["public"]["Enums"]["alert_severity"]
+        }
+        Insert: {
+          alert_type: string
+          created_at?: string
+          id?: string
+          message: string
+          related_ip?: string | null
+          related_user_id?: string | null
+          resolved?: boolean
+          severity?: Database["public"]["Enums"]["alert_severity"]
+        }
+        Update: {
+          alert_type?: string
+          created_at?: string
+          id?: string
+          message?: string
+          related_ip?: string | null
+          related_user_id?: string | null
+          resolved?: boolean
+          severity?: Database["public"]["Enums"]["alert_severity"]
+        }
+        Relationships: []
+      }
       login_attempts: {
         Row: {
           created_at: string
@@ -47,18 +80,60 @@ export type Database = {
           email: string
           id: string
           user_id: string
+          username: string | null
         }
         Insert: {
           created_at?: string
           email: string
           id?: string
           user_id: string
+          username?: string | null
         }
         Update: {
           created_at?: string
           email?: string
           id?: string
           user_id?: string
+          username?: string | null
+        }
+        Relationships: []
+      }
+      security_events: {
+        Row: {
+          created_at: string
+          event_type: Database["public"]["Enums"]["event_type"]
+          id: string
+          input_value: string | null
+          ip_address: string
+          reasons: string[] | null
+          risk_score: number | null
+          user_id: string | null
+          username: string | null
+          verdict: Database["public"]["Enums"]["verdict_type"] | null
+        }
+        Insert: {
+          created_at?: string
+          event_type: Database["public"]["Enums"]["event_type"]
+          id?: string
+          input_value?: string | null
+          ip_address: string
+          reasons?: string[] | null
+          risk_score?: number | null
+          user_id?: string | null
+          username?: string | null
+          verdict?: Database["public"]["Enums"]["verdict_type"] | null
+        }
+        Update: {
+          created_at?: string
+          event_type?: Database["public"]["Enums"]["event_type"]
+          id?: string
+          input_value?: string | null
+          ip_address?: string
+          reasons?: string[] | null
+          risk_score?: number | null
+          user_id?: string | null
+          username?: string | null
+          verdict?: Database["public"]["Enums"]["verdict_type"] | null
         }
         Relationships: []
       }
@@ -97,8 +172,15 @@ export type Database = {
       }
     }
     Enums: {
+      alert_severity: "low" | "medium" | "high"
       app_role: "admin" | "user"
+      event_type:
+        | "url_analysis"
+        | "email_analysis"
+        | "login_success"
+        | "login_failed"
       login_status: "success" | "failed"
+      verdict_type: "safe" | "suspicious"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -226,8 +308,16 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      alert_severity: ["low", "medium", "high"],
       app_role: ["admin", "user"],
+      event_type: [
+        "url_analysis",
+        "email_analysis",
+        "login_success",
+        "login_failed",
+      ],
       login_status: ["success", "failed"],
+      verdict_type: ["safe", "suspicious"],
     },
   },
 } as const
