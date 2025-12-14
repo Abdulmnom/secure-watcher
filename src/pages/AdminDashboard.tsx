@@ -2,87 +2,40 @@ import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { LoginAttemptsTable } from "@/components/LoginAttemptsTable";
-import { AlertBanner } from "@/components/AlertBanner";
+import { SecurityEventsTable } from "@/components/SecurityEventsTable";
+import { AlertsPanel } from "@/components/AlertsPanel";
 import { StatsCard } from "@/components/StatsCard";
 import { Button } from "@/components/ui/button";
-import { 
-  Shield, 
-  ArrowLeft, 
-  Activity, 
-  CheckCircle, 
-  XCircle, 
+import {
+  Shield,
+  ArrowLeft,
+  Activity,
+  CheckCircle,
   AlertTriangle,
-  LogOut 
+  Link2,
+  LogOut,
 } from "lucide-react";
 
 interface Stats {
   total: number;
-  success: number;
-  failed: number;
+  safe: number;
   suspicious: number;
+  urlAnalysis: number;
 }
 
 const AdminDashboard = () => {
   const { user, signOut } = useAuth();
-  const [suspiciousCount, setSuspiciousCount] = useState(0);
-  const [suspiciousIPs, setSuspiciousIPs] = useState<string[]>([]);
-  const [stats, setStats] = useState<Stats>({ total: 0, success: 0, failed: 0, suspicious: 0 });
+  const [stats, setStats] = useState<Stats>({ total: 0, safe: 0, suspicious: 0, urlAnalysis: 0 });
 
-  const fetchStats = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('login_attempts')
-        .select('status, is_suspicious');
-
-      if (error) throw error;
-
-      const total = data?.length || 0;
-      const success = data?.filter(a => a.status === 'success').length || 0;
-      const failed = data?.filter(a => a.status === 'failed').length || 0;
-      const suspicious = data?.filter(a => a.is_suspicious).length || 0;
-
-      setStats({ total, success, failed, suspicious });
-    } catch (error) {
-      console.error('Error fetching stats:', error);
-    }
-  };
-
-  useEffect(() => {
-    fetchStats();
-
-    // Subscribe to realtime updates for stats
-    const channel = supabase
-      .channel('stats-changes')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'login_attempts',
-        },
-        () => {
-          fetchStats();
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, []);
-
-  const handleSuspiciousChange = (count: number, ips: string[]) => {
-    setSuspiciousCount(count);
-    setSuspiciousIPs(ips);
+  const handleStatsChange = (newStats: Stats) => {
+    setStats(newStats);
   };
 
   return (
     <div className="min-h-screen relative">
-      {/* Scanlines overlay */}
       <div className="fixed inset-0 pointer-events-none scanlines opacity-30" />
 
-      <div className="container max-w-6xl py-8 relative z-10">
+      <div className="container max-w-7xl py-8 relative z-10">
         {/* Header */}
         <header className="flex items-center justify-between mb-8 animate-fade-in">
           <div className="flex items-center gap-4">
@@ -97,7 +50,7 @@ const AdminDashboard = () => {
               </div>
               <div>
                 <h1 className="text-2xl font-bold text-foreground">Admin Dashboard</h1>
-                <p className="text-sm text-muted-foreground">Security Monitoring System</p>
+                <p className="text-sm text-muted-foreground">Security Events & Alerts</p>
               </div>
             </div>
           </div>
@@ -107,7 +60,7 @@ const AdminDashboard = () => {
               <Activity className="w-4 h-4 text-success animate-pulse" />
               <span className="text-xs font-medium text-success">LIVE</span>
             </div>
-            
+
             {user && (
               <div className="flex items-center gap-3">
                 <span className="text-sm text-muted-foreground">{user.email}</span>
@@ -120,50 +73,56 @@ const AdminDashboard = () => {
           </div>
         </header>
 
-        {/* Alert Banner */}
-        <div className="mb-8 animate-fade-in" style={{ animationDelay: '100ms' }}>
-          <AlertBanner suspiciousCount={suspiciousCount} suspiciousIPs={suspiciousIPs} />
-        </div>
-
         {/* Stats Grid */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8 animate-fade-in" style={{ animationDelay: '150ms' }}>
+        <div
+          className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8 animate-fade-in"
+          style={{ animationDelay: "100ms" }}
+        >
           <StatsCard
-            title="Total Attempts"
+            title="Total Events"
             value={stats.total}
             subtitle="All recorded"
             icon={Activity}
             variant="default"
           />
           <StatsCard
-            title="Successful"
-            value={stats.success}
-            subtitle="Logged in"
+            title="Safe"
+            value={stats.safe}
+            subtitle="Passed checks"
             icon={CheckCircle}
             variant="success"
           />
           <StatsCard
-            title="Failed"
-            value={stats.failed}
-            subtitle="Blocked"
-            icon={XCircle}
-            variant="destructive"
-          />
-          <StatsCard
             title="Suspicious"
             value={stats.suspicious}
-            subtitle="Flagged IPs"
+            subtitle="Flagged"
             icon={AlertTriangle}
             variant="warning"
           />
+          <StatsCard
+            title="URL Analyses"
+            value={stats.urlAnalysis}
+            subtitle="URLs checked"
+            icon={Link2}
+            variant="default"
+          />
         </div>
 
-        {/* Login Attempts Table */}
-        <div className="animate-fade-in" style={{ animationDelay: '200ms' }}>
-          <LoginAttemptsTable onSuspiciousChange={handleSuspiciousChange} />
+        {/* Main Content Grid */}
+        <div className="grid lg:grid-cols-3 gap-6 animate-fade-in" style={{ animationDelay: "150ms" }}>
+          {/* Events Table - 2 columns */}
+          <div className="lg:col-span-2">
+            <SecurityEventsTable onStatsChange={handleStatsChange} />
+          </div>
+
+          {/* Alerts Panel - 1 column */}
+          <div>
+            <AlertsPanel />
+          </div>
         </div>
 
         {/* Footer */}
-        <footer className="mt-12 text-center animate-fade-in" style={{ animationDelay: '250ms' }}>
+        <footer className="mt-12 text-center animate-fade-in" style={{ animationDelay: "200ms" }}>
           <p className="text-xs text-muted-foreground">
             Educational Security Monitoring System • Not for production use
           </p>

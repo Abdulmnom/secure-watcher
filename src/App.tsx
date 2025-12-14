@@ -8,6 +8,7 @@ import { ProtectedRoute } from "@/components/ProtectedRoute";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import AdminDashboard from "./pages/AdminDashboard";
+import UrlAnalyzer from "./pages/UrlAnalyzer";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -22,6 +23,14 @@ const App = () => (
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/auth" element={<Auth />} />
+            <Route
+              path="/url-analyzer"
+              element={
+                <ProtectedRoute>
+                  <UrlAnalyzer />
+                </ProtectedRoute>
+              }
+            />
             <Route
               path="/admin"
               element={

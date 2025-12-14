@@ -2,7 +2,7 @@ import { Link } from "react-router-dom";
 import { AuthNav } from "@/components/AuthNav";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
-import { Shield, Terminal, Activity, Lock, Eye, AlertTriangle } from "lucide-react";
+import { Shield, Terminal, Activity, Lock, Eye, AlertTriangle, Link2, Mail, Search } from "lucide-react";
 
 const Index = () => {
   const { user, isAdmin } = useAuth();
@@ -34,43 +34,77 @@ const Index = () => {
 
         {/* Main Content */}
         <div className="grid gap-8 animate-fade-in" style={{ animationDelay: '200ms' }}>
-          {/* User Status */}
-          {user ? (
-            <div className="border-gradient p-8 rounded-xl text-center">
-              <div className="inline-flex items-center justify-center p-3 rounded-lg bg-success/10 mb-4">
-                <Lock className="w-8 h-8 text-success" />
+          {/* Analysis Tools */}
+          <div className="grid md:grid-cols-2 gap-6">
+            <div className="border-gradient p-6 rounded-xl">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="p-3 rounded-lg bg-primary/10">
+                  <Link2 className="w-6 h-6 text-primary" />
+                </div>
+                <h2 className="text-lg font-semibold text-foreground">URL Analyzer</h2>
               </div>
-              <h2 className="text-xl font-semibold text-foreground mb-2">
-                You're Logged In
-              </h2>
-              <p className="text-muted-foreground mb-6">
-                Welcome back! Your login was recorded in our security monitoring system.
+              <p className="text-sm text-muted-foreground mb-4">
+                Check URLs for phishing patterns, suspicious keywords, and security risks.
               </p>
-              {isAdmin && (
-                <Button variant="glow" size="lg" asChild>
-                  <Link to="/admin">
-                    <Eye className="w-5 h-5" />
-                    View Admin Dashboard
-                  </Link>
-                </Button>
-              )}
-            </div>
-          ) : (
-            <div className="border-gradient p-8 rounded-xl text-center">
-              <div className="inline-flex items-center justify-center p-3 rounded-lg bg-warning/10 mb-4">
-                <AlertTriangle className="w-8 h-8 text-warning" />
-              </div>
-              <h2 className="text-xl font-semibold text-foreground mb-2">
-                Authentication Required
-              </h2>
-              <p className="text-muted-foreground mb-6">
-                Sign in or create an account to test the security monitoring system.
-              </p>
-              <Button variant="glow" size="lg" asChild>
-                <Link to="/auth">
-                  Sign In / Sign Up
+              <Button variant="glow" size="default" className="w-full" asChild>
+                <Link to="/url-analyzer">
+                  <Search className="w-4 h-4 mr-2" />
+                  Analyze URL
                 </Link>
               </Button>
+            </div>
+
+            <div className="border-gradient p-6 rounded-xl opacity-60">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="p-3 rounded-lg bg-muted">
+                  <Mail className="w-6 h-6 text-muted-foreground" />
+                </div>
+                <h2 className="text-lg font-semibold text-foreground">Email Analyzer</h2>
+              </div>
+              <p className="text-sm text-muted-foreground mb-4">
+                Scan email content for phishing attempts and suspicious patterns.
+              </p>
+              <Button variant="outline" size="default" className="w-full" disabled>
+                Coming Soon
+              </Button>
+            </div>
+          </div>
+
+          {/* User Status */}
+          {user ? (
+            <div className="border-gradient p-6 rounded-xl">
+              <div className="flex items-center gap-4">
+                <div className="p-3 rounded-lg bg-success/10">
+                  <Lock className="w-6 h-6 text-success" />
+                </div>
+                <div className="flex-1">
+                  <h2 className="text-lg font-semibold text-foreground">Logged In</h2>
+                  <p className="text-sm text-muted-foreground">All activities are logged</p>
+                </div>
+                {isAdmin && (
+                  <Button variant="outline" size="sm" asChild>
+                    <Link to="/admin">
+                      <Eye className="w-4 h-4 mr-2" />
+                      Admin Dashboard
+                    </Link>
+                  </Button>
+                )}
+              </div>
+            </div>
+          ) : (
+            <div className="border-gradient p-6 rounded-xl">
+              <div className="flex items-center gap-4">
+                <div className="p-3 rounded-lg bg-warning/10">
+                  <AlertTriangle className="w-6 h-6 text-warning" />
+                </div>
+                <div className="flex-1">
+                  <h2 className="text-lg font-semibold text-foreground">Sign In Required</h2>
+                  <p className="text-sm text-muted-foreground">Create an account to use analyzers</p>
+                </div>
+                <Button variant="glow" size="sm" asChild>
+                  <Link to="/auth">Sign In</Link>
+                </Button>
+              </div>
             </div>
           )}
 
