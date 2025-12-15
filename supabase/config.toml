@@ -1,1 +1,4 @@
 project_id = "jxjotsybockprmrdrxch"
+
+[functions.analyze-email-ml]
+verify_jwt = false

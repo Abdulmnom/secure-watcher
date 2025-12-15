@@ -5,18 +5,26 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { ArrowLeft, Mail, Shield, AlertTriangle, CheckCircle } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
+import { ArrowLeft, Mail, Shield, AlertTriangle, CheckCircle, Brain, Cpu } from "lucide-react";
 import { analyzeEmail, EmailAnalysisResult } from "@/lib/emailAnalyzer";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
+interface MLAnalysisResult extends EmailAnalysisResult {
+  method?: 'rule-based' | 'ml-ai';
+  confidence?: number;
+}
+
 export default function EmailAnalyzer() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [emailContent, setEmailContent] = useState("");
-  const [result, setResult] = useState<EmailAnalysisResult | null>(null);
+  const [result, setResult] = useState<MLAnalysisResult | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [useML, setUseML] = useState(true);
 
   const handleAnalyze = async () => {
     if (!emailContent.trim()) {
@@ -26,10 +34,40 @@ export default function EmailAnalyzer() {
 
     setIsAnalyzing(true);
     
-    // Simulate processing delay for better UX
-    await new Promise(resolve => setTimeout(resolve, 500));
-    
-    const analysisResult = analyzeEmail(emailContent);
+    let analysisResult: MLAnalysisResult;
+
+    try {
+      // Call the ML backend endpoint
+      const { data, error } = await supabase.functions.invoke('analyze-email-ml', {
+        body: { emailContent, useML }
+      });
+
+      if (error) {
+        console.error('ML analysis error:', error);
+        // Fallback to client-side analysis
+        const clientResult = analyzeEmail(emailContent);
+        analysisResult = { ...clientResult, method: 'rule-based' };
+        toast.warning("Using fallback analysis (ML unavailable)");
+      } else {
+        analysisResult = {
+          verdict: data.verdict,
+          riskScore: data.riskScore,
+          reasons: data.reasons,
+          method: data.method,
+          confidence: data.confidence
+        };
+        
+        if (data.method === 'ml-ai') {
+          toast.success("ML Analysis Complete");
+        }
+      }
+    } catch (err) {
+      console.error('Analysis error:', err);
+      // Fallback to client-side
+      const clientResult = analyzeEmail(emailContent);
+      analysisResult = { ...clientResult, method: 'rule-based' };
+    }
+
     setResult(analysisResult);
 
     // Log the security event
@@ -104,13 +142,26 @@ Enter your password and credit card details to confirm."
                 onChange={(e) => setEmailContent(e.target.value)}
                 className="min-h-[200px] font-mono text-sm"
               />
+              <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+                <div className="flex items-center gap-2">
+                  {useML ? <Brain className="h-4 w-4 text-primary" /> : <Cpu className="h-4 w-4" />}
+                  <Label htmlFor="use-ml" className="text-sm font-medium">
+                    {useML ? "ML-Enhanced Analysis" : "Rule-Based Analysis"}
+                  </Label>
+                </div>
+                <Switch
+                  id="use-ml"
+                  checked={useML}
+                  onCheckedChange={setUseML}
+                />
+              </div>
               <div className="flex gap-2">
                 <Button 
                   onClick={handleAnalyze} 
                   disabled={isAnalyzing || !emailContent.trim()}
                   className="flex-1"
                 >
-                  {isAnalyzing ? "Analyzing..." : "Analyze Email"}
+                  {isAnalyzing ? (useML ? "ML Analyzing..." : "Analyzing...") : "Analyze Email"}
                 </Button>
                 <Button variant="outline" onClick={handleClear}>
                   Clear
@@ -148,11 +199,28 @@ Enter your password and credit card details to confirm."
                   />
                 </div>
 
-                <div>
-                  <h4 className="text-sm font-medium mb-2">Verdict</h4>
-                  <Badge variant={result.verdict === 'suspicious' ? 'destructive' : 'default'}>
-                    {result.verdict.toUpperCase()}
-                  </Badge>
+                <div className="flex gap-4">
+                  <div>
+                    <h4 className="text-sm font-medium mb-2">Verdict</h4>
+                    <Badge variant={result.verdict === 'suspicious' ? 'destructive' : 'default'}>
+                      {result.verdict.toUpperCase()}
+                    </Badge>
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-medium mb-2">Method</h4>
+                    <Badge variant="outline" className="flex items-center gap-1">
+                      {result.method === 'ml-ai' ? <Brain className="h-3 w-3" /> : <Cpu className="h-3 w-3" />}
+                      {result.method === 'ml-ai' ? 'ML/AI' : 'Rule-Based'}
+                    </Badge>
+                  </div>
+                  {result.confidence !== undefined && (
+                    <div>
+                      <h4 className="text-sm font-medium mb-2">Confidence</h4>
+                      <Badge variant="secondary">
+                        {Math.round(result.confidence * 100)}%
+                      </Badge>
+                    </div>
+                  )}
                 </div>
 
                 <div>
