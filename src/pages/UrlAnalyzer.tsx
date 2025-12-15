@@ -70,9 +70,9 @@ const UrlAnalyzer = () => {
       await supabase.from("security_events").insert({
         user_id: user?.id || null,
         username,
-        event_type: "url_analysis",
+        event_type: "url_analysis" as const,
         input_value: url.substring(0, 500), // Limit stored URL length
-        verdict: analysisResult.verdict,
+        verdict: analysisResult.verdict as 'safe' | 'suspicious',
         risk_score: analysisResult.riskScore,
         reasons: analysisResult.reasons,
         ip_address: ip,
