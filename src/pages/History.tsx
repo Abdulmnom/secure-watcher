@@ -58,12 +58,12 @@ export default function History() {
 
   const getEventIcon = (eventType: string) => {
     switch (eventType) {
-      case 'URL_ANALYSIS':
+      case 'url_analysis':
         return <Link className="h-4 w-4" />;
-      case 'EMAIL_ANALYSIS':
+      case 'email_analysis':
         return <Mail className="h-4 w-4" />;
-      case 'LOGIN_SUCCESS':
-      case 'LOGIN_FAILED':
+      case 'login_success':
+      case 'login_failed':
         return <LogIn className="h-4 w-4" />;
       default:
         return <HistoryIcon className="h-4 w-4" />;
@@ -72,21 +72,21 @@ export default function History() {
 
   const getEventLabel = (eventType: string) => {
     switch (eventType) {
-      case 'URL_ANALYSIS':
+      case 'url_analysis':
         return 'URL Analysis';
-      case 'EMAIL_ANALYSIS':
+      case 'email_analysis':
         return 'Email Analysis';
-      case 'LOGIN_SUCCESS':
+      case 'login_success':
         return 'Login Success';
-      case 'LOGIN_FAILED':
+      case 'login_failed':
         return 'Login Failed';
       default:
         return eventType;
     }
   };
 
-  const analysisEvents = events.filter(e => e.event_type === 'URL_ANALYSIS' || e.event_type === 'EMAIL_ANALYSIS');
-  const loginEvents = events.filter(e => e.event_type === 'LOGIN_SUCCESS' || e.event_type === 'LOGIN_FAILED');
+  const analysisEvents = events.filter(e => e.event_type === 'url_analysis' || e.event_type === 'email_analysis');
+  const loginEvents = events.filter(e => e.event_type === 'login_success' || e.event_type === 'login_failed');
 
   if (isLoading) {
     return (
@@ -216,13 +216,13 @@ export default function History() {
                         {loginEvents.map((event) => (
                           <TableRow key={event.id}>
                             <TableCell>
-                              <Badge variant={event.event_type === 'LOGIN_SUCCESS' ? 'default' : 'destructive'}>
-                                {event.event_type === 'LOGIN_SUCCESS' ? (
+                            <Badge variant={event.event_type === 'login_success' ? 'default' : 'destructive'}>
+                                {event.event_type === 'login_success' ? (
                                   <CheckCircle className="h-3 w-3 mr-1" />
                                 ) : (
                                   <AlertTriangle className="h-3 w-3 mr-1" />
                                 )}
-                                {event.event_type === 'LOGIN_SUCCESS' ? 'Successful' : 'Failed'}
+                                {event.event_type === 'login_success' ? 'Successful' : 'Failed'}
                               </Badge>
                             </TableCell>
                             <TableCell className="text-sm text-muted-foreground">
