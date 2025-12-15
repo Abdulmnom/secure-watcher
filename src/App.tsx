@@ -9,6 +9,9 @@ import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import AdminDashboard from "./pages/AdminDashboard";
 import UrlAnalyzer from "./pages/UrlAnalyzer";
+import EmailAnalyzer from "./pages/EmailAnalyzer";
+import Profile from "./pages/Profile";
+import History from "./pages/History";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -28,6 +31,30 @@ const App = () => (
               element={
                 <ProtectedRoute>
                   <UrlAnalyzer />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/email-analyzer"
+              element={
+                <ProtectedRoute>
+                  <EmailAnalyzer />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/profile"
+              element={
+                <ProtectedRoute>
+                  <Profile />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/history"
+              element={
+                <ProtectedRoute>
+                  <History />
                 </ProtectedRoute>
               }
             />

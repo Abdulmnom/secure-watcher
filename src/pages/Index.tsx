@@ -2,7 +2,7 @@ import { Link } from "react-router-dom";
 import { AuthNav } from "@/components/AuthNav";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
-import { Shield, Terminal, Activity, Lock, Eye, AlertTriangle, Link2, Mail, Search } from "lucide-react";
+import { Shield, Terminal, Activity, Lock, Eye, AlertTriangle, Link2, Mail, Search, User, History } from "lucide-react";
 
 const Index = () => {
   const { user, isAdmin } = useAuth();
@@ -54,18 +54,21 @@ const Index = () => {
               </Button>
             </div>
 
-            <div className="border-gradient p-6 rounded-xl opacity-60">
+            <div className="border-gradient p-6 rounded-xl">
               <div className="flex items-center gap-3 mb-4">
-                <div className="p-3 rounded-lg bg-muted">
-                  <Mail className="w-6 h-6 text-muted-foreground" />
+                <div className="p-3 rounded-lg bg-primary/10">
+                  <Mail className="w-6 h-6 text-primary" />
                 </div>
                 <h2 className="text-lg font-semibold text-foreground">Email Analyzer</h2>
               </div>
               <p className="text-sm text-muted-foreground mb-4">
                 Scan email content for phishing attempts and suspicious patterns.
               </p>
-              <Button variant="outline" size="default" className="w-full" disabled>
-                Coming Soon
+              <Button variant="glow" size="default" className="w-full" asChild>
+                <Link to="/email-analyzer">
+                  <Search className="w-4 h-4 mr-2" />
+                  Analyze Email
+                </Link>
               </Button>
             </div>
           </div>
@@ -81,14 +84,28 @@ const Index = () => {
                   <h2 className="text-lg font-semibold text-foreground">Logged In</h2>
                   <p className="text-sm text-muted-foreground">All activities are logged</p>
                 </div>
-                {isAdmin && (
+                <div className="flex gap-2">
                   <Button variant="outline" size="sm" asChild>
-                    <Link to="/admin">
-                      <Eye className="w-4 h-4 mr-2" />
-                      Admin Dashboard
+                    <Link to="/profile">
+                      <User className="w-4 h-4 mr-2" />
+                      Profile
                     </Link>
                   </Button>
-                )}
+                  <Button variant="outline" size="sm" asChild>
+                    <Link to="/history">
+                      <History className="w-4 h-4 mr-2" />
+                      History
+                    </Link>
+                  </Button>
+                  {isAdmin && (
+                    <Button variant="outline" size="sm" asChild>
+                      <Link to="/admin">
+                        <Eye className="w-4 h-4 mr-2" />
+                        Admin
+                      </Link>
+                    </Button>
+                  )}
+                </div>
               </div>
             </div>
           ) : (
