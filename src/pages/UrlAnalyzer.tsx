@@ -2,10 +2,10 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
-import { analyzeUrl, AnalysisResult } from "@/lib/urlAnalyzer";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import { toast } from "@/hooks/use-toast";
 import { AuthNav } from "@/components/AuthNav";
 import {
@@ -18,12 +18,23 @@ import {
   ArrowLeft,
   CheckCircle,
   XCircle,
+  Brain,
+  Cpu,
 } from "lucide-react";
+
+interface AnalysisResult {
+  verdict: "safe" | "suspicious";
+  riskScore: number;
+  reasons: string[];
+  confidence?: number;
+  method?: string;
+}
 
 const UrlAnalyzer = () => {
   const [url, setUrl] = useState("");
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [result, setResult] = useState<AnalysisResult | null>(null);
+  const [useML, setUseML] = useState(true);
   const { user } = useAuth();
 
   const getIpAddress = async () => {
@@ -50,8 +61,23 @@ const UrlAnalyzer = () => {
     setResult(null);
 
     try {
-      // Perform analysis
-      const analysisResult = analyzeUrl(url);
+      // Call ML edge function
+      const response = await supabase.functions.invoke("analyze-url-ml", {
+        body: { url, useML },
+      });
+
+      if (response.error) {
+        throw new Error(response.error.message);
+      }
+
+      const analysisResult: AnalysisResult = {
+        verdict: response.data.verdict,
+        riskScore: response.data.riskScore,
+        reasons: response.data.reasons,
+        confidence: response.data.confidence,
+        method: response.data.method,
+      };
+      
       setResult(analysisResult);
 
       // Get username from profile
@@ -71,7 +97,7 @@ const UrlAnalyzer = () => {
         user_id: user?.id || null,
         username,
         event_type: "url_analysis" as const,
-        input_value: url.substring(0, 500), // Limit stored URL length
+        input_value: url.substring(0, 500),
         verdict: analysisResult.verdict as 'safe' | 'suspicious',
         risk_score: analysisResult.riskScore,
         reasons: analysisResult.reasons,
@@ -80,7 +106,7 @@ const UrlAnalyzer = () => {
 
       toast({
         title: "Analysis Complete",
-        description: `URL analyzed: ${analysisResult.verdict.toUpperCase()}`,
+        description: `URL analyzed: ${analysisResult.verdict.toUpperCase()} (${analysisResult.method === 'ml-ai' ? 'ML' : 'Rule-based'})`,
       });
     } catch (error) {
       console.error("Analysis error:", error);
@@ -139,6 +165,30 @@ const UrlAnalyzer = () => {
               </div>
             </div>
 
+            {/* ML Toggle */}
+            <div className="flex items-center justify-between p-4 rounded-lg bg-muted/30 border border-border">
+              <div className="flex items-center gap-3">
+                {useML ? (
+                  <Brain className="w-5 h-5 text-primary" />
+                ) : (
+                  <Cpu className="w-5 h-5 text-muted-foreground" />
+                )}
+                <div>
+                  <p className="text-sm font-medium text-foreground">
+                    {useML ? "ML-Enhanced Analysis" : "Rule-Based Analysis"}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {useML ? "AI-powered detection with confidence score" : "Fast, pattern-based detection"}
+                  </p>
+                </div>
+              </div>
+              <Switch
+                checked={useML}
+                onCheckedChange={setUseML}
+                disabled={isAnalyzing}
+              />
+            </div>
+
             <Button
               onClick={handleAnalyze}
               variant="glow"
@@ -165,21 +215,37 @@ const UrlAnalyzer = () => {
               result.verdict === "suspicious" ? "glow-warning" : "glow-success"
             }`}
           >
-            <div className="flex items-center gap-4 mb-6">
-              {result.verdict === "suspicious" ? (
-                <div className="p-3 rounded-lg bg-warning/10">
-                  <ShieldAlert className="w-8 h-8 text-warning" />
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center gap-4">
+                {result.verdict === "suspicious" ? (
+                  <div className="p-3 rounded-lg bg-warning/10">
+                    <ShieldAlert className="w-8 h-8 text-warning" />
+                  </div>
+                ) : (
+                  <div className="p-3 rounded-lg bg-success/10">
+                    <ShieldCheck className="w-8 h-8 text-success" />
+                  </div>
+                )}
+                <div>
+                  <h2 className="text-xl font-bold text-foreground">
+                    {result.verdict === "suspicious" ? "Suspicious URL" : "Safe URL"}
+                  </h2>
+                  <p className="text-muted-foreground">Analysis complete</p>
                 </div>
-              ) : (
-                <div className="p-3 rounded-lg bg-success/10">
-                  <ShieldCheck className="w-8 h-8 text-success" />
-                </div>
-              )}
-              <div>
-                <h2 className="text-xl font-bold text-foreground">
-                  {result.verdict === "suspicious" ? "Suspicious URL" : "Safe URL"}
-                </h2>
-                <p className="text-muted-foreground">Analysis complete</p>
+              </div>
+              
+              {/* Analysis Method Badge */}
+              <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium ${
+                result.method === 'ml-ai' 
+                  ? 'bg-primary/10 text-primary' 
+                  : 'bg-muted text-muted-foreground'
+              }`}>
+                {result.method === 'ml-ai' ? (
+                  <Brain className="w-3 h-3" />
+                ) : (
+                  <Cpu className="w-3 h-3" />
+                )}
+                {result.method === 'ml-ai' ? 'ML Analysis' : 'Rule-based'}
               </div>
             </div>
 
@@ -187,17 +253,24 @@ const UrlAnalyzer = () => {
             <div className="mb-6">
               <div className="flex justify-between items-center mb-2">
                 <span className="text-sm text-muted-foreground">Risk Score</span>
-                <span
-                  className={`text-lg font-bold ${
-                    result.riskScore >= 50
-                      ? "text-destructive"
-                      : result.riskScore >= 30
-                      ? "text-warning"
-                      : "text-success"
-                  }`}
-                >
-                  {result.riskScore}/100
-                </span>
+                <div className="flex items-center gap-3">
+                  {result.confidence !== undefined && (
+                    <span className="text-xs text-muted-foreground">
+                      Confidence: {Math.round(result.confidence * 100)}%
+                    </span>
+                  )}
+                  <span
+                    className={`text-lg font-bold ${
+                      result.riskScore >= 50
+                        ? "text-destructive"
+                        : result.riskScore >= 30
+                        ? "text-warning"
+                        : "text-success"
+                    }`}
+                  >
+                    {result.riskScore}/100
+                  </span>
+                </div>
               </div>
               <div className="h-3 bg-secondary rounded-full overflow-hidden">
                 <div
@@ -242,9 +315,10 @@ const UrlAnalyzer = () => {
             <div>
               <h3 className="text-sm font-medium text-foreground mb-1">How It Works</h3>
               <p className="text-xs text-muted-foreground">
-                This analyzer checks URLs for common phishing indicators including suspicious keywords,
-                IP addresses, excessive subdomains, URL encoding, and more. Results are logged for
-                security monitoring.
+                {useML 
+                  ? "ML mode uses AI to analyze URLs for sophisticated phishing patterns, typosquatting, homograph attacks, and brand impersonation with confidence scoring."
+                  : "Rule-based mode checks URLs for common phishing indicators including suspicious keywords, IP addresses, excessive subdomains, and URL encoding tricks."
+                }
               </p>
             </div>
           </div>
