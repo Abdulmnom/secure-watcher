@@ -28,6 +28,51 @@ const signupSchema = z.object({
   path: ["confirmPassword"],
 });
 
+// Analyze email with ML for suspicious patterns
+const analyzeEmailWithML = async (emailAddress: string, username: string): Promise<{ isSuspicious: boolean; reasons: string[] }> => {
+  try {
+    const response = await supabase.functions.invoke("analyze-email-ml", {
+      body: { 
+        emailContent: `New user registration: Email: ${emailAddress}, Username: ${username}`,
+        useML: true 
+      },
+    });
+
+    if (response.error) {
+      console.error("ML analysis error:", response.error);
+      return { isSuspicious: false, reasons: [] };
+    }
+
+    const { verdict, reasons } = response.data;
+    return { 
+      isSuspicious: verdict === "suspicious", 
+      reasons: reasons || [] 
+    };
+  } catch (error) {
+    console.error("Failed to analyze email with ML:", error);
+    return { isSuspicious: false, reasons: [] };
+  }
+};
+
+// Create alert for suspicious registration
+const createSuspiciousRegistrationAlert = async (
+  email: string, 
+  username: string, 
+  reasons: string[],
+  ip: string
+) => {
+  try {
+    await supabase.from("alerts").insert({
+      alert_type: "SUSPICIOUS_REGISTRATION",
+      severity: "high",
+      message: `Suspicious account registration detected: ${username} (${email}). Reasons: ${reasons.join(", ")}`,
+      related_ip: ip,
+    });
+  } catch (error) {
+    console.error("Failed to create alert:", error);
+  }
+};
+
 const Auth = () => {
   const [isLogin, setIsLogin] = useState(true);
   const [username, setUsername] = useState("");
@@ -140,6 +185,19 @@ const Auth = () => {
           navigate("/");
         }
       } else {
+        // Get IP for alert
+        let ip = "127.0.0.1";
+        try {
+          const ipResponse = await fetch("https://api.ipify.org?format=json");
+          const ipData = await ipResponse.json();
+          ip = ipData.ip;
+        } catch {
+          // Use fallback IP
+        }
+
+        // Analyze the registration with ML before signup
+        const mlAnalysis = await analyzeEmailWithML(email, username);
+
         const { error } = await signUp(email, password, username);
         
         if (error) {
@@ -154,10 +212,22 @@ const Auth = () => {
             variant: "destructive",
           });
         } else {
-          toast({
-            title: "Account Created!",
-            description: "You can now log in with your credentials",
-          });
+          // If ML flagged as suspicious, create alert for admin
+          if (mlAnalysis.isSuspicious) {
+            await createSuspiciousRegistrationAlert(email, username, mlAnalysis.reasons, ip);
+            
+            toast({
+              title: "Account Created",
+              description: "Your account is under review. You can still log in.",
+              variant: "default",
+            });
+          } else {
+            toast({
+              title: "Account Created!",
+              description: "You can now log in with your credentials",
+            });
+          }
+          
           setIsLogin(true);
           setUsername("");
           setPassword("");

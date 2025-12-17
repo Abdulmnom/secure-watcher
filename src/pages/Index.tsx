@@ -1,11 +1,10 @@
 import { Link } from "react-router-dom";
-import { AuthNav } from "@/components/AuthNav";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
-import { Shield, Terminal, Activity, Lock, Eye, AlertTriangle, Link2, Mail, Search, User, History } from "lucide-react";
+import { Shield, Terminal, Activity, Lock, AlertTriangle, Link2, Mail, Search } from "lucide-react";
 
 const Index = () => {
-  const { user, isAdmin } = useAuth();
+  const { user } = useAuth();
 
   return (
     <div className="min-h-screen relative">
@@ -13,10 +12,6 @@ const Index = () => {
       <div className="fixed inset-0 pointer-events-none scanlines opacity-30" />
       
       <div className="container max-w-4xl py-12 relative z-10">
-        {/* Navigation */}
-        <nav className="flex justify-end mb-8 animate-fade-in">
-          <AuthNav />
-        </nav>
 
         {/* Header */}
         <header className="text-center mb-12 animate-fade-in">
@@ -81,30 +76,8 @@ const Index = () => {
                   <Lock className="w-6 h-6 text-success" />
                 </div>
                 <div className="flex-1">
-                  <h2 className="text-lg font-semibold text-foreground">Logged In</h2>
-                  <p className="text-sm text-muted-foreground">All activities are logged</p>
-                </div>
-                <div className="flex gap-2">
-                  <Button variant="outline" size="sm" asChild>
-                    <Link to="/profile">
-                      <User className="w-4 h-4 mr-2" />
-                      Profile
-                    </Link>
-                  </Button>
-                  <Button variant="outline" size="sm" asChild>
-                    <Link to="/history">
-                      <History className="w-4 h-4 mr-2" />
-                      History
-                    </Link>
-                  </Button>
-                  {isAdmin && (
-                    <Button variant="outline" size="sm" asChild>
-                      <Link to="/admin">
-                        <Eye className="w-4 h-4 mr-2" />
-                        Admin
-                      </Link>
-                    </Button>
-                  )}
+                  <h2 className="text-lg font-semibold text-foreground">Welcome back!</h2>
+                  <p className="text-sm text-muted-foreground">All activities are being logged and monitored</p>
                 </div>
               </div>
             </div>
