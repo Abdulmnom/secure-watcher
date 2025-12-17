@@ -17,6 +17,7 @@ interface SecurityEvent {
   verdict: string | null;
   risk_score: number | null;
   reasons: string[] | null;
+  ip_address: string;
   created_at: string;
 }
 
@@ -38,7 +39,7 @@ export default function History() {
     try {
       const { data, error } = await supabase
         .from('security_events')
-        .select('id, event_type, input_value, verdict, risk_score, reasons, created_at')
+        .select('id, event_type, input_value, verdict, risk_score, reasons, ip_address, created_at')
         .eq('user_id', user.id)
         .order('created_at', { ascending: false })
         .limit(100);
@@ -209,6 +210,7 @@ export default function History() {
                       <TableHeader>
                         <TableRow>
                           <TableHead>Status</TableHead>
+                          <TableHead>IP Address</TableHead>
                           <TableHead>Date & Time</TableHead>
                         </TableRow>
                       </TableHeader>
@@ -216,7 +218,7 @@ export default function History() {
                         {loginEvents.map((event) => (
                           <TableRow key={event.id}>
                             <TableCell>
-                            <Badge variant={event.event_type === 'login_success' ? 'default' : 'destructive'}>
+                              <Badge variant={event.event_type === 'login_success' ? 'default' : 'destructive'}>
                                 {event.event_type === 'login_success' ? (
                                   <CheckCircle className="h-3 w-3 mr-1" />
                                 ) : (
@@ -224,6 +226,11 @@ export default function History() {
                                 )}
                                 {event.event_type === 'login_success' ? 'Successful' : 'Failed'}
                               </Badge>
+                            </TableCell>
+                            <TableCell>
+                              <code className="px-2 py-1 rounded bg-muted text-xs font-mono">
+                                {event.ip_address}
+                              </code>
                             </TableCell>
                             <TableCell className="text-sm text-muted-foreground">
                               {format(new Date(event.created_at), 'MMM d, yyyy HH:mm:ss')}
