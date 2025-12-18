@@ -150,11 +150,11 @@ const Index = () => {
               </div>
               <div className="flex items-center gap-2 px-4 py-2 rounded-lg bg-secondary/30">
                 <Activity className="w-4 h-4 text-success" />
-                <span className="text-sm font-medium text-foreground">Lovable Cloud</span>
+                <span className="text-sm font-medium text-foreground">Supabase Auth</span>
               </div>
               <div className="flex items-center gap-2 px-4 py-2 rounded-lg bg-secondary/30">
                 <Activity className="w-4 h-4 text-warning" />
-                <span className="text-sm font-medium text-foreground">PostgreSQL</span>
+                <span className="text-sm font-medium text-foreground">Google Gemini 2.5 Flash</span>
               </div>
             </div>
           </div>
