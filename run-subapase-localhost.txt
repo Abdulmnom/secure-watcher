@@ -1,0 +1,13 @@
+npm install -g supabase
+
+or
+npx supabase --help
+
+then 
+npx supabase start
+
+
+http://localhost:54323/project/default
+
+
+

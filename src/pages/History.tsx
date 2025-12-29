@@ -116,17 +116,6 @@ export default function History() {
       <main className="container mx-auto px-4 py-8">
         <div className="max-w-4xl mx-auto">
           <Tabs defaultValue="analysis" className="space-y-4">
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="analysis" className="flex items-center gap-2">
-                <Mail className="h-4 w-4" />
-                Analysis History ({analysisEvents.length})
-              </TabsTrigger>
-              <TabsTrigger value="logins" className="flex items-center gap-2">
-                <LogIn className="h-4 w-4" />
-                Login Events ({loginEvents.length})
-              </TabsTrigger>
-            </TabsList>
-
             <TabsContent value="analysis">
               <Card>
                 <CardHeader>
