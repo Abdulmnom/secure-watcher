@@ -117,10 +117,10 @@ function ruleBasedAnalysis(emailContent: string) {
 
 // ML-enhanced analysis using AI (Gemini)
 async function mlAnalysis(emailContent: string) {
-  const ML_API_KEY = Deno.env.get('ML_API_KEY');
+  const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
 
-  if (!ML_API_KEY) {
-    console.log('No ML_API_KEY, falling back to rule-based analysis');
+  if (!LOVABLE_API_KEY) {
+    console.log('No LOVABLE_API_KEY, falling back to rule-based analysis');
     return null;
   }
 
@@ -128,7 +128,7 @@ async function mlAnalysis(emailContent: string) {
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${ML_API_KEY}`,
+        'Authorization': `Bearer ${LOVABLE_API_KEY}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
