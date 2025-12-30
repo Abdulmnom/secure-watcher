@@ -5,7 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { toast } from "@/hooks/use-toast";
 import { AuthNav } from "@/components/AuthNav";
 import {
@@ -20,6 +20,7 @@ import {
   XCircle,
   Brain,
   Cpu,
+  TreePine,
 } from "lucide-react";
 
 interface AnalysisResult {
@@ -28,13 +29,16 @@ interface AnalysisResult {
   reasons: string[];
   confidence?: number;
   method?: string;
+  primaryMethod?: string;
+  secondaryMethod?: string;
+  modeUsed?: string;
 }
 
 const UrlAnalyzer = () => {
   const [url, setUrl] = useState("");
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [result, setResult] = useState<AnalysisResult | null>(null);
-  const [useML, setUseML] = useState(true);
+  const [mlMethod, setMlMethod] = useState<'decision-tree' | 'gemini' | 'hybrid'>('hybrid');
   const { user } = useAuth();
 
   const getIpAddress = async () => {
@@ -63,7 +67,7 @@ const UrlAnalyzer = () => {
     try {
       // Call ML edge function
       const response = await supabase.functions.invoke("analyze-url-ml", {
-        body: { url, useML },
+        body: { url, mlMethod },
       });
 
       if (response.error) {
@@ -76,6 +80,7 @@ const UrlAnalyzer = () => {
         reasons: response.data.reasons,
         confidence: response.data.confidence,
         method: response.data.method,
+        modeUsed: response.data.modeUsed,
       };
       
       setResult(analysisResult);
@@ -106,7 +111,7 @@ const UrlAnalyzer = () => {
 
       toast({
         title: "Analysis Complete",
-        description: `URL analyzed: ${analysisResult.verdict.toUpperCase()} (${analysisResult.method === 'ml-ai' ? 'ML' : 'Rule-based'})`,
+        description: `URL analyzed: ${analysisResult.verdict.toUpperCase()} (${analysisResult.method})`,
       });
     } catch (error) {
       console.error("Analysis error:", error);
@@ -165,28 +170,32 @@ const UrlAnalyzer = () => {
               </div>
             </div>
 
-            {/* ML Toggle */}
-            <div className="flex items-center justify-between p-4 rounded-lg bg-muted/30 border border-border">
-              <div className="flex items-center gap-3">
-                {useML ? (
-                  <Brain className="w-5 h-5 text-primary" />
-                ) : (
-                  <Cpu className="w-5 h-5 text-muted-foreground" />
-                )}
-                <div>
-                  <p className="text-sm font-medium text-foreground">
-                    {useML ? "ML-Enhanced Analysis" : "Rule-Based Analysis"}
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    {useML ? "AI-powered detection with confidence score" : "Fast, pattern-based detection"}
-                  </p>
+            {/* ML Method Selection */}
+            <div className="p-4 rounded-lg bg-muted/30 border border-border">
+              <Label className="text-sm font-medium mb-3 block">Analysis Method</Label>
+              <RadioGroup value={mlMethod} onValueChange={(value) => setMlMethod(value as typeof mlMethod)} className="flex gap-4">
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="decision-tree" id="tree" />
+                  <Label htmlFor="tree" className="flex items-center gap-1 text-sm">
+                    <TreePine className="h-3 w-3" />
+                    Decision Tree
+                  </Label>
                 </div>
-              </div>
-              <Switch
-                checked={useML}
-                onCheckedChange={setUseML}
-                disabled={isAnalyzing}
-              />
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="gemini" id="gemini" />
+                  <Label htmlFor="gemini" className="flex items-center gap-1 text-sm">
+                    <Brain className="h-3 w-3" />
+                    Gemini AI
+                  </Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="hybrid" id="hybrid" />
+                  <Label htmlFor="hybrid" className="flex items-center gap-1 text-sm">
+                    <Shield className="h-3 w-3" />
+                    Hybrid
+                  </Label>
+                </div>
+              </RadioGroup>
             </div>
 
             <Button
@@ -236,16 +245,23 @@ const UrlAnalyzer = () => {
               
               {/* Analysis Method Badge */}
               <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium ${
-                result.method === 'ml-ai' 
-                  ? 'bg-primary/10 text-primary' 
+                result.method === 'ml-ai' || result.method === 'hybrid-tree+gemini'
+                  ? 'bg-primary/10 text-primary'
+                  : result.method === 'decision-tree' || result.method === 'hybrid-tree'
+                  ? 'bg-green-500/10 text-green-600'
                   : 'bg-muted text-muted-foreground'
               }`}>
-                {result.method === 'ml-ai' ? (
+                {result.method === 'ml-ai' || result.method === 'hybrid-tree+gemini' ? (
                   <Brain className="w-3 h-3" />
+                ) : result.method === 'decision-tree' || result.method === 'hybrid-tree' ? (
+                  <TreePine className="w-3 h-3" />
                 ) : (
                   <Cpu className="w-3 h-3" />
                 )}
-                {result.method === 'ml-ai' ? 'ML Analysis' : 'Rule-based'}
+                Mode: {result.modeUsed} | Method: {result.method === 'ml-ai' ? 'Gemini AI' :
+                 result.method === 'decision-tree' ? 'Decision Tree' :
+                 result.method === 'hybrid-tree' ? 'Hybrid (Tree)' :
+                 result.method === 'hybrid-tree+gemini' ? 'Hybrid (Tree+Gemini)' : 'Rule-based'}
               </div>
             </div>
 
@@ -315,10 +331,7 @@ const UrlAnalyzer = () => {
             <div>
               <h3 className="text-sm font-medium text-foreground mb-1">How It Works</h3>
               <p className="text-xs text-muted-foreground">
-                {useML 
-                  ? "ML mode uses AI to analyze URLs for sophisticated phishing patterns, typosquatting, homograph attacks, and brand impersonation with confidence scoring."
-                  : "Rule-based mode checks URLs for common phishing indicators including suspicious keywords, IP addresses, excessive subdomains, and URL encoding tricks."
-                }
+                Choose your analysis method: Decision Tree for fast rule-based detection, Gemini AI for advanced pattern recognition, or Hybrid for the best of both worlds.
               </p>
             </div>
           </div>

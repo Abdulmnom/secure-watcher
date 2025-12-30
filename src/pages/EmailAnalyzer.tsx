@@ -5,17 +5,20 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { Switch } from "@/components/ui/switch";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
-import { ArrowLeft, Mail, Shield, AlertTriangle, CheckCircle, Brain, Cpu } from "lucide-react";
+import { ArrowLeft, Mail, Shield, AlertTriangle, CheckCircle, Brain, Cpu, TreePine } from "lucide-react";
 import { analyzeEmail, EmailAnalysisResult } from "@/lib/emailAnalyzer";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
 interface MLAnalysisResult extends EmailAnalysisResult {
-  method?: 'rule-based' | 'ml-ai';
+  method?: 'rule-based' | 'ml-ai' | 'decision-tree' | 'hybrid-tree' | 'hybrid-tree+gemini';
   confidence?: number;
+  primaryMethod?: string;
+  secondaryMethod?: string;
+  modeUsed?: string;
 }
 
 export default function EmailAnalyzer() {
@@ -24,7 +27,7 @@ export default function EmailAnalyzer() {
   const [emailContent, setEmailContent] = useState("");
   const [result, setResult] = useState<MLAnalysisResult | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [useML, setUseML] = useState(true);
+  const [mlMethod, setMlMethod] = useState<'decision-tree' | 'gemini' | 'hybrid'>('hybrid');
 
   const handleAnalyze = async () => {
     if (!emailContent.trim()) {
@@ -39,7 +42,7 @@ export default function EmailAnalyzer() {
     try {
       // Call the ML backend endpoint
       const { data, error } = await supabase.functions.invoke('analyze-email-ml', {
-        body: { emailContent, useML }
+        body: { emailContent, mlMethod }
       });
 
       if (error) {
@@ -54,7 +57,8 @@ export default function EmailAnalyzer() {
           riskScore: data.riskScore,
           reasons: data.reasons,
           method: data.method,
-          confidence: data.confidence
+          confidence: data.confidence,
+          modeUsed: data.modeUsed
         };
         
         if (data.method === 'ml-ai') {
@@ -142,26 +146,39 @@ Enter your password and credit card details to confirm."
                 onChange={(e) => setEmailContent(e.target.value)}
                 className="min-h-[200px] font-mono text-sm"
               />
-              <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
-                <div className="flex items-center gap-2">
-                  {useML ? <Brain className="h-4 w-4 text-primary" /> : <Cpu className="h-4 w-4" />}
-                  <Label htmlFor="use-ml" className="text-sm font-medium">
-                    {useML ? "ML-Enhanced Analysis" : "Rule-Based Analysis"}
-                  </Label>
-                </div>
-                <Switch
-                  id="use-ml"
-                  checked={useML}
-                  onCheckedChange={setUseML}
-                />
+              <div className="p-3 bg-muted/50 rounded-lg">
+                <Label className="text-sm font-medium mb-3 block">Analysis Method</Label>
+                <RadioGroup value={mlMethod} onValueChange={(value) => setMlMethod(value as typeof mlMethod)} className="flex gap-4">
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="decision-tree" id="tree" />
+                    <Label htmlFor="tree" className="flex items-center gap-1 text-sm">
+                      <TreePine className="h-3 w-3" />
+                      Decision Tree
+                    </Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="gemini" id="gemini" />
+                    <Label htmlFor="gemini" className="flex items-center gap-1 text-sm">
+                      <Brain className="h-3 w-3" />
+                      Gemini AI
+                    </Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="hybrid" id="hybrid" />
+                    <Label htmlFor="hybrid" className="flex items-center gap-1 text-sm">
+                      <Shield className="h-3 w-3" />
+                      Hybrid
+                    </Label>
+                  </div>
+                </RadioGroup>
               </div>
               <div className="flex gap-2">
-                <Button 
-                  onClick={handleAnalyze} 
+                <Button
+                  onClick={handleAnalyze}
                   disabled={isAnalyzing || !emailContent.trim()}
                   className="flex-1"
                 >
-                  {isAnalyzing ? (useML ? "ML Analyzing..." : "Analyzing...") : "Analyze Email"}
+                  {isAnalyzing ? "Analyzing..." : "Analyze Email"}
                 </Button>
                 <Button variant="outline" onClick={handleClear}>
                   Clear
@@ -209,8 +226,12 @@ Enter your password and credit card details to confirm."
                   <div>
                     <h4 className="text-sm font-medium mb-2">Method</h4>
                     <Badge variant="outline" className="flex items-center gap-1">
-                      {result.method === 'ml-ai' ? <Brain className="h-3 w-3" /> : <Cpu className="h-3 w-3" />}
-                      {result.method === 'ml-ai' ? 'ML/AI' : 'Rule-Based'}
+                      {result.method === 'ml-ai' || result.method === 'hybrid-tree+gemini' ? <Brain className="h-3 w-3" /> :
+                       result.method === 'decision-tree' || result.method === 'hybrid-tree' ? <TreePine className="h-3 w-3" /> : <Cpu className="h-3 w-3" />}
+                      Mode: {result.modeUsed} | Method: {result.method === 'ml-ai' ? 'Gemini AI' :
+                       result.method === 'decision-tree' ? 'Decision Tree' :
+                       result.method === 'hybrid-tree' ? 'Hybrid (Tree)' :
+                       result.method === 'hybrid-tree+gemini' ? 'Hybrid (Tree+Gemini)' : 'Rule-Based'}
                     </Badge>
                   </div>
                   {result.confidence !== undefined && (

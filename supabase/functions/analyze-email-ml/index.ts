@@ -6,6 +6,36 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Feature extraction for Decision Tree
+function extractEmailFeatures(emailContent: string): number[] {
+  const lowerContent = emailContent.toLowerCase();
+  return [
+    lowerContent.includes('urgent') || lowerContent.includes('immediately') ? 1 : 0,  // Urgent language
+    lowerContent.includes('password') || lowerContent.includes('otp') || lowerContent.includes('card') ? 1 : 0,  // Sensitive info
+    (lowerContent.match(/!/g) || []).length > 3 ? 1 : 0,  // Excessive exclamation
+    lowerContent.includes('free money') || lowerContent.includes('winner') ? 1 : 0,  // Scam phrases
+    emailContent.length > 200 ? 1 : 0,  // Long content
+  ];
+}
+
+// Simple Decision Tree prediction (hardcoded for demo)
+function predictWithDecisionTree(features: number[]): { verdict: 'safe' | 'suspicious'; riskScore: number; reasons: string[] } {
+  let riskScore = 0;
+  const reasons: string[] = [];
+
+  // Simple rules based on features
+  if (features[0] === 1) { riskScore += 20; reasons.push('Contains urgent language'); }
+  if (features[1] === 1) { riskScore += 25; reasons.push('Requests sensitive information'); }
+  if (features[2] === 1) { riskScore += 15; reasons.push('Excessive exclamation marks'); }
+  if (features[3] === 1) { riskScore += 25; reasons.push('Common scam phrases detected'); }
+  if (features[4] === 1) { riskScore += 10; reasons.push('Unusually long email'); }
+
+  const verdict = riskScore >= 40 ? 'suspicious' : 'safe';
+  if (reasons.length === 0) reasons.push('No suspicious patterns detected');
+
+  return { verdict, riskScore: Math.min(riskScore, 100), reasons };
+}
+
 // Rule-based analysis (fallback when ML is not available)
 function ruleBasedAnalysis(emailContent: string) {
   const reasons: string[] = [];
@@ -85,10 +115,10 @@ function ruleBasedAnalysis(emailContent: string) {
   };
 }
 
-// ML-enhanced analysis using AI
+// ML-enhanced analysis using AI (Gemini)
 async function mlAnalysis(emailContent: string) {
   const ML_API_KEY = Deno.env.get('ML_API_KEY');
-  
+
   if (!ML_API_KEY) {
     console.log('No ML_API_KEY, falling back to rule-based analysis');
     return null;
@@ -107,7 +137,7 @@ async function mlAnalysis(emailContent: string) {
           {
             role: 'system',
             content: `You are a phishing email detection AI trained on datasets like the Kaggle Phishing Email Dataset and Enron Email Dataset.
-            
+
 Analyze the given email content and classify it as either SAFE or SUSPICIOUS.
 
 Consider these phishing indicators:
@@ -144,7 +174,7 @@ Respond ONLY with valid JSON in this exact format:
 
     const data = await response.json();
     const content = data.choices?.[0]?.message?.content;
-    
+
     if (!content) {
       console.error('No content in AI response');
       return null;
@@ -159,7 +189,7 @@ Respond ONLY with valid JSON in this exact format:
 
     const result = JSON.parse(jsonMatch[0]);
     return {
-      verdict: result.verdict,
+      verdict: result.verdict.toLowerCase(),
       riskScore: result.riskScore,
       reasons: result.reasons,
       confidence: result.confidence,
@@ -171,14 +201,39 @@ Respond ONLY with valid JSON in this exact format:
   }
 }
 
-serve(async (req) => {
+// Hybrid analysis: Decision Tree first, then Gemini if suspicious
+async function hybridAnalysis(emailContent: string) {
+  const features = extractEmailFeatures(emailContent);
+  const treeResult = predictWithDecisionTree(features);
+
+  // If Decision Tree says suspicious, confirm with Gemini
+  if (treeResult.verdict === 'suspicious') {
+    const geminiResult = await mlAnalysis(emailContent);
+    if (geminiResult) {
+      return {
+        ...geminiResult,
+        method: 'hybrid-tree+gemini',
+        primaryMethod: 'decision-tree',
+        secondaryMethod: 'gemini'
+      };
+    }
+  }
+
+  // Otherwise, return tree result
+  return {
+    ...treeResult,
+    method: 'hybrid-tree'
+  };
+}
+
+serve(async (req: Request) => {
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const { emailContent, useML = true } = await req.json();
+    const { emailContent, mlMethod = 'gemini' } = await req.json();
 
     if (!emailContent || typeof emailContent !== 'string') {
       return new Response(
@@ -187,21 +242,26 @@ serve(async (req) => {
       );
     }
 
-    console.log(`Analyzing email (${emailContent.length} chars), useML: ${useML}`);
+    console.log(`Analyzing email (${emailContent.length} chars), mlMethod: ${mlMethod}`);
 
     let result;
-    
-    if (useML) {
-      // Try ML analysis first
+
+    if (mlMethod === 'decision-tree') {
+      result = predictWithDecisionTree(extractEmailFeatures(emailContent));
+    } else if (mlMethod === 'gemini') {
       result = await mlAnalysis(emailContent);
-      
-      // Fallback to rule-based if ML fails
       if (!result) {
-        console.log('ML analysis failed, using rule-based fallback');
+        console.log('Gemini analysis failed, using rule-based fallback');
+        result = ruleBasedAnalysis(emailContent);
+      }
+    } else if (mlMethod === 'hybrid') {
+      result = await hybridAnalysis(emailContent);
+      if (!result) {
+        console.log('Hybrid analysis failed, using rule-based fallback');
         result = ruleBasedAnalysis(emailContent);
       }
     } else {
-      // Use rule-based only
+      // Default to rule-based
       result = ruleBasedAnalysis(emailContent);
     }
 
@@ -211,6 +271,7 @@ serve(async (req) => {
       JSON.stringify({
         success: true,
         ...result,
+        modeUsed: mlMethod,
         analyzedAt: new Date().toISOString()
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

@@ -12,6 +12,35 @@ const SUSPICIOUS_KEYWORDS = [
 
 const SUSPICIOUS_TLDS = [".tk", ".ml", ".ga", ".cf", ".gq", ".xyz", ".top", ".work", ".buzz", ".click"];
 
+// Feature extraction for Decision Tree
+function extractUrlFeatures(url: string): number[] {
+  const normalizedUrl = url.toLowerCase().trim();
+  return [
+    normalizedUrl.includes('@') ? 1 : 0,  // @ symbol
+    /\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}/.test(normalizedUrl) ? 1 : 0,  // IP address
+    SUSPICIOUS_KEYWORDS.some(kw => normalizedUrl.includes(kw)) ? 1 : 0,  // Suspicious keywords
+    normalizedUrl.length > 80 ? 1 : 0,  // Long URL
+    SUSPICIOUS_TLDS.some(tld => normalizedUrl.includes(tld)) ? 1 : 0,  // Suspicious TLD
+  ];
+}
+
+// Simple Decision Tree prediction for URLs
+function predictUrlWithDecisionTree(features: number[]): { verdict: 'safe' | 'suspicious'; riskScore: number; reasons: string[] } {
+  let riskScore = 0;
+  const reasons: string[] = [];
+
+  if (features[0] === 1) { riskScore += 25; reasons.push('Contains @ symbol'); }
+  if (features[1] === 1) { riskScore += 30; reasons.push('Uses IP address'); }
+  if (features[2] === 1) { riskScore += 20; reasons.push('Contains suspicious keywords'); }
+  if (features[3] === 1) { riskScore += 15; reasons.push('Unusually long URL'); }
+  if (features[4] === 1) { riskScore += 15; reasons.push('Uses suspicious TLD'); }
+
+  const verdict = riskScore >= 40 ? 'suspicious' : 'safe';
+  if (reasons.length === 0) reasons.push('No suspicious patterns detected');
+
+  return { verdict, riskScore: Math.min(riskScore, 100), reasons };
+}
+
 // Rule-based analysis (fallback)
 function ruleBasedAnalysis(url: string) {
   const reasons: string[] = [];
@@ -84,6 +113,29 @@ function ruleBasedAnalysis(url: string) {
     riskScore,
     reasons: reasons.length > 0 ? reasons : ['No suspicious patterns detected'],
     method: 'rule-based'
+  };
+}
+
+// Hybrid analysis for URLs
+async function hybridUrlAnalysis(url: string) {
+  const features = extractUrlFeatures(url);
+  const treeResult = predictUrlWithDecisionTree(features);
+
+  if (treeResult.verdict === 'suspicious') {
+    const geminiResult = await mlAnalysis(url);
+    if (geminiResult) {
+      return {
+        ...geminiResult,
+        method: 'hybrid-tree+gemini',
+        primaryMethod: 'decision-tree',
+        secondaryMethod: 'gemini'
+      };
+    }
+  }
+
+  return {
+    ...treeResult,
+    method: 'hybrid-tree'
   };
 }
 
@@ -166,7 +218,7 @@ Respond ONLY with valid JSON in this exact format:
 
     const result = JSON.parse(jsonMatch[0]);
     return {
-      verdict: result.verdict,
+      verdict: result.verdict.toLowerCase(),
       riskScore: result.riskScore,
       reasons: result.reasons,
       confidence: result.confidence,
@@ -178,14 +230,14 @@ Respond ONLY with valid JSON in this exact format:
   }
 }
 
-serve(async (req) => {
+serve(async (req: Request) => {
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const { url, useML = true } = await req.json();
+    const { url, mlMethod = 'gemini' } = await req.json();
 
     if (!url || typeof url !== 'string') {
       return new Response(
@@ -194,21 +246,25 @@ serve(async (req) => {
       );
     }
 
-    console.log(`Analyzing URL (${url.length} chars), useML: ${useML}`);
+    console.log(`Analyzing URL (${url.length} chars), mlMethod: ${mlMethod}`);
 
     let result;
-    
-    if (useML) {
-      // Try ML analysis first
+
+    if (mlMethod === 'decision-tree') {
+      result = predictUrlWithDecisionTree(extractUrlFeatures(url));
+    } else if (mlMethod === 'gemini') {
       result = await mlAnalysis(url);
-      
-      // Fallback to rule-based if ML fails
       if (!result) {
-        console.log('ML analysis failed, using rule-based fallback');
+        console.log('Gemini analysis failed, using rule-based fallback');
+        result = ruleBasedAnalysis(url);
+      }
+    } else if (mlMethod === 'hybrid') {
+      result = await hybridUrlAnalysis(url);
+      if (!result) {
+        console.log('Hybrid analysis failed, using rule-based fallback');
         result = ruleBasedAnalysis(url);
       }
     } else {
-      // Use rule-based only
       result = ruleBasedAnalysis(url);
     }
 
@@ -218,6 +274,7 @@ serve(async (req) => {
       JSON.stringify({
         success: true,
         ...result,
+        modeUsed: mlMethod,
         analyzedAt: new Date().toISOString()
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
